@@ -6,21 +6,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getStartAndEndDate } from "@/app/utils/date-utils";
-import { useRestSecurityClient } from "@/app/hooks/securityClient";
+import { formatDate, getStartAndEndDate } from "@/app/utils/date-utils";
 import Loading from "../../LoadingSpinner";
 
 const LineChartWrapper = () => {
 	const [selectedDataRange, setSelectedDataRange] = useState(CHART_CONSTANTS.dataRanges.weekly);
 	const [directionDelta, setDirectionDelta] = useState(0);
 	const allowedDataRangesForLineChart = CHART_CONSTANTS.lineChartSelectDataRanges;
-	const restClient = useRestSecurityClient();
 	const [productivityStatusInNumbers, setProductivityStatusInNumbers] = useState([]);
 	const [isLoading, setIsLoading] = useState(false);
 
 	const productivityLevels = CHART_CONSTANTS.productivityLevels;
 
 	const [xAxisLabels, setXAxisLabels] = useState(CHART_CONSTANTS.weekdaysInShort); //
+
+	const apiFetch = async (path) => {
+		const response = await fetch(`/api${path}`, { cache: "no-store" });
+		if (!response.ok) {
+			const errorData = await response.json().catch(() => ({}));
+			throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+		}
+		return response.json();
+	};
 
 	const handleOnDataRangeChange = (value) => {
 		setSelectedDataRange(value);
@@ -39,13 +46,12 @@ const LineChartWrapper = () => {
 	const getLineChartData = async (dataRange, operation) => {
 		try {
 			const { startDate, endDate } = getStartAndEndDate(new Date(), dataRange, operation);
-			console.log("Data Range :: ", dataRange, " Operation :: ", operation);
-			console.log("Requesting data for :: ", startDate);
-			console.log(endDate);
+			const formattedStartDate = formatDate(startDate);
+			const formattedEndDate = formatDate(endDate);
 
 			setIsLoading(true);
-			const response = await restClient.get(
-				`/day/productivity/status/line-chart?startDate=${startDate}&endDate=${endDate}`
+			const response = await apiFetch(
+				`/day/productivity/status/line-chart?startDate=${formattedStartDate}&endDate=${formattedEndDate}`
 			);
 			if (response.result) {
 				let status = [];
@@ -63,8 +69,7 @@ const LineChartWrapper = () => {
 			}
 
 			// Set the response.
-		} catch (error) {
-			console.log(error);
+		} catch {
 		} finally {
 			setIsLoading(false);
 		}
@@ -115,7 +120,7 @@ const LineChartWrapper = () => {
 					</Button>
 				</div>
 			</div>
-			{isLoading && <Loading />}
+			{isLoading && <Loading overlay />}
 			{!productivityStatusInNumbers.length && !xAxisLabels.length ? (
 				<div className="w-full h-full flex justify-center items-center">
 					{/* {Add a relatable emoji here} */}

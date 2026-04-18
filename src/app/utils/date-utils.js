@@ -29,3 +29,12 @@ export function getStartAndEndDate(today, rangeType, operation) {
 
 	return result;
 }
+
+export function formatDate(value) {
+	if (!value) {
+		return "";
+	}
+
+	const date = value instanceof Date ? value : new Date(value);
+	return date.toISOString().split("T")[0];
+}

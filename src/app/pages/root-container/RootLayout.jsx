@@ -6,12 +6,10 @@ import { useEffect, useState } from "react";
 
 const RootLayout = () => {
   const user = useUser();
-  console.log(user);
   const [isMobileView, setIsMobileView] = useState(false);
 
   useEffect(() => {
     if (window.innerWidth <= 768) {
-      console.log("Mobile device detected");
       setIsMobileView(true);
     }
   }, []);

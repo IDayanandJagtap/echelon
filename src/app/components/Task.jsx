@@ -1,4 +1,3 @@
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +6,7 @@ import { Label } from "../../components/ui/label";
 import { Badge } from "../../components/ui/badge";
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import { Trash2, Edit2, Save, X } from "lucide-react";
+import { Trash2, Edit2, Save, X, ChevronDown, ChevronUp } from "lucide-react";
 
 // Constants
 const statuses = [
@@ -27,6 +26,7 @@ const statusColorLabel = {
 const Task = ({ id, title, description, category, status, onTaskUpdate, onDelete }) => {
 	const [selectedFilters, setSelectedFilters] = useState({});
 	const [isEditing, setIsEditing] = useState(false);
+	const [isExpanded, setIsExpanded] = useState(false);
 	const [editedTitle, setEditedTitle] = useState(title);
 	const [editedDescription, setEditedDescription] = useState(description);
 
@@ -58,138 +58,153 @@ const Task = ({ id, title, description, category, status, onTaskUpdate, onDelete
 		onDelete(id);
 	};
 
+	const toggleExpand = () => {
+		setIsExpanded((previous) => !previous);
+	};
+
 	useEffect(() => {
 		setSelectedFilters({ ...selectedFilters, statusOfTask: status });
 	}, [status]);
 
 	return (
 		<div className="bg-[#222] px-4  my-2 rounded-lg">
-			<Accordion type="single" collapsible value={isEditing ? "item-1" : undefined}>
-				<AccordionItem value="item-1" className="border-none">
-					<AccordionTrigger className="hover:no-underline">
-						<div className="flex w-full items-center justify-between">
-							<div className="flex flex-col gap-1 w-full">
-								{isEditing ? (
-									<div className="flex flex-col gap-1 w-full">
-										<Label htmlFor="title" className="text-xs text-gray-400">
-											Title
-										</Label>
-										<Input
-											id="title"
-											value={editedTitle}
-											onChange={(e) => setEditedTitle(e.target.value)}
-											className="bg-[#181818] border-none w-full "
-										/>
-									</div>
-								) : (
+			<div className="py-3">
+				<div className="flex items-start justify-between gap-3">
+					<button
+						type="button"
+						onClick={toggleExpand}
+						className="flex flex-1 items-start gap-3 text-left"
+					>
+						<div className="pt-0.5 text-slate-400">
+							{isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+						</div>
+						<div className="flex flex-col gap-1">
+							{isEditing ? (
+								<div className="flex flex-col gap-1 w-full">
+									<Label htmlFor="title" className="text-xs text-gray-400">
+										Title
+									</Label>
+									<Input
+										id="title"
+										value={editedTitle}
+										onChange={(e) => setEditedTitle(e.target.value)}
+										className="bg-[#181818] border-none w-full"
+									/>
+								</div>
+							) : (
+								<>
+									<h3 className="text-sm font-medium lg:text-md">{title}</h3>
+									<Badge className="bg-purple-500/20 text-purple-300 text-xs rounded-md px-2 py-0.5 w-fit border-none">
+										{category}
+									</Badge>
+								</>
+							)}
+						</div>
+					</button>
+
+					{!isEditing && (
+						<div className="shrink-0">
+							<Select
+								value={selectedFilters?.statusOfTask || status}
+								onValueChange={(value) => handleDropdownChange("statusOfTask", value)}
+							>
+								<SelectTrigger
+									className={`w-[120px] h-[32px] ${
+										statusColorLabel[selectedFilters?.statusOfTask]?.color
+									} border-none text-xs`}
+								>
+									<SelectValue placeholder={statusColorLabel[status]?.label} />
+								</SelectTrigger>
+								<SelectContent className="bg-[#222] border-slate-700">
+									{statuses.map((item) => (
+										<SelectItem
+											value={item.value}
+											key={item.value}
+											className="text-white focus:bg-[#333] focus:text-slate-300"
+										>
+											{item.label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					)}
+				</div>
+
+				{isExpanded && (
+					<div className="mt-4 flex flex-col gap-4">
+						<div className="flex flex-col gap-3">
+							{isEditing ? (
+								<>
 									<div className="flex flex-col gap-1">
-										<h3 className="text-sm font-medium lg:text-md">{title}</h3>
+										<Label htmlFor="category" className="text-xs text-gray-400">
+											Category
+										</Label>
 										<Badge className="bg-purple-500/20 text-purple-300 text-xs rounded-md px-2 py-0.5 w-fit border-none">
 											{category}
 										</Badge>
 									</div>
-								)}
-							</div>
-							{!isEditing && (
-								<Select
-									onValueChange={(value) => handleDropdownChange("statusOfTask", value)}
-								>
-									<SelectTrigger
-										className={`w-[110px] h-[30px] ${
-											statusColorLabel[selectedFilters?.statusOfTask]?.color
-										} border-none text-xs`}
-									>
-										<SelectValue placeholder={statusColorLabel[status]?.label} />
-									</SelectTrigger>
-									<SelectContent className="bg-[#222] border-slate-700">
-										{statuses.map((item) => (
-											<SelectItem
-												value={item.value}
-												key={item.value}
-												className="text-white focus:bg-[#333] focus:text-slate-300"
-											>
-												{item.label}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
+									<div className="flex flex-col gap-1">
+										<Label htmlFor="description" className="text-xs text-gray-400">
+											Description
+										</Label>
+										<Textarea
+											id="description"
+											value={editedDescription}
+											onChange={(e) => setEditedDescription(e.target.value)}
+											className="bg-[#181818] border-input border-none min-h-[100px]"
+										/>
+									</div>
+								</>
+							) : (
+								<p className="text-sm text-gray-300">{description}</p>
 							)}
 						</div>
-					</AccordionTrigger>
-					<AccordionContent>
-						<div className="flex flex-col gap-4">
-							<div className="flex flex-col gap-3">
+
+						<div className="border-t border-border/10 pt-2">
+							<div className="flex justify-end gap-2">
+								<Button
+									variant="ghost"
+									size="icon"
+									className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+									onClick={handleDeleteClick}
+								>
+									<Trash2 className="h-4 w-4" />
+								</Button>
 								{isEditing ? (
 									<>
-										<div className="flex flex-col gap-1">
-											<Label htmlFor="category" className="text-xs text-gray-400">
-												Category
-											</Label>
-											<Badge className="bg-purple-500/20 text-purple-300 text-xs rounded-md px-2 py-0.5 w-fit border-none">
-												{category}
-											</Badge>
-										</div>
-										<div className="flex flex-col gap-1">
-											<Label htmlFor="description" className="text-xs text-gray-400">
-												Description
-											</Label>
-											<Textarea
-												id="description"
-												value={editedDescription}
-												onChange={(e) => setEditedDescription(e.target.value)}
-												className="bg-[#181818] border-input border-none min-h-[100px]"
-											/>
-										</div>
-									</>
-								) : (
-									<p className="text-sm text-gray-300">{description}</p>
-								)}
-							</div>
-							<div className="border-t border-border/10 pt-2">
-								<div className="flex justify-end gap-2">
-									<Button
-										variant="ghost"
-										size="icon"
-										className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
-										onClick={handleDeleteClick}
-									>
-										<Trash2 className="h-4 w-4" />
-									</Button>
-									{isEditing ? (
-										<>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="text-green-500 hover:text-green-600 hover:bg-green-500/10"
-												onClick={handleSaveClick}
-											>
-												<Save className="h-4 w-4" />
-											</Button>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="text-gray-500 hover:text-gray-600 hover:bg-gray-500/10"
-												onClick={handleCancelClick}
-											>
-												<X className="h-4 w-4" />
-											</Button>
-										</>
-									) : (
 										<Button
 											variant="ghost"
 											size="icon"
-											className="text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
-											onClick={handleEditClick}
+											className="text-green-500 hover:text-green-600 hover:bg-green-500/10"
+											onClick={handleSaveClick}
 										>
-											<Edit2 className="h-4 w-4" />
+											<Save className="h-4 w-4" />
 										</Button>
-									)}
-								</div>
+										<Button
+											variant="ghost"
+											size="icon"
+											className="text-gray-500 hover:text-gray-600 hover:bg-gray-500/10"
+											onClick={handleCancelClick}
+										>
+											<X className="h-4 w-4" />
+										</Button>
+									</>
+								) : (
+									<Button
+										variant="ghost"
+										size="icon"
+										className="text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
+										onClick={handleEditClick}
+									>
+										<Edit2 className="h-4 w-4" />
+									</Button>
+								)}
 							</div>
 						</div>
-					</AccordionContent>
-				</AccordionItem>
-			</Accordion>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 };

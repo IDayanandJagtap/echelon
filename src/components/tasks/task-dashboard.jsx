@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { formatDate, toDisplayDate } from "@/lib/dates";
 
@@ -87,35 +88,66 @@ function TaskForm({ initialValue, onClose, onSave }) {
   );
 }
 
-function TaskCard({ task, onEdit, onDelete }) {
+function TaskCard({ task, onEdit, onDelete, onStatusChange }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   return (
     <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-base font-medium text-white">{task.title}</p>
-          <p className="mt-1 text-sm text-zinc-400">{task.description || "No description"}</p>
-        </div>
-        <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1 text-xs text-violet-200">
-          {task.status}
-        </span>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <button
+          type="button"
+          onClick={() => setIsExpanded((previous) => !previous)}
+          className="flex flex-1 items-start justify-between gap-4 text-left"
+        >
+          <div>
+            <p className="text-base font-medium text-white">{task.title}</p>
+            <p className="mt-1 text-sm text-zinc-400">{task.description || "No description"}</p>
+          </div>
+          <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1 text-xs text-violet-200">
+            {task.status}
+          </span>
+        </button>
+
+        <Select value={task.status} onValueChange={(value) => onStatusChange(task.id, value)}>
+          <SelectTrigger className="w-full lg:w-[160px] rounded-2xl border border-white/10 bg-white/5 text-white">
+            <SelectValue placeholder="Update status" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#0b1020] border-white/10 text-white">
+            {taskStatuses.map((status) => (
+              <SelectItem value={status} key={status} className="focus:bg-white/10 focus:text-white">
+                {status}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-400">
-        <div className="flex flex-wrap gap-2">
-          {task.category ? <span className="rounded-full bg-white/5 px-2 py-1">{task.category}</span> : null}
-          {task.sub_category ? <span className="rounded-full bg-white/5 px-2 py-1">{task.sub_category}</span> : null}
-          <span className="rounded-full bg-white/5 px-2 py-1">{task.task_date}</span>
-        </div>
+      {isExpanded ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-400">
+          <div className="flex flex-wrap gap-2">
+            {task.category ? <span className="rounded-full bg-white/5 px-2 py-1">{task.category}</span> : null}
+            {task.sub_category ? <span className="rounded-full bg-white/5 px-2 py-1">{task.sub_category}</span> : null}
+            <span className="rounded-full bg-white/5 px-2 py-1">{task.task_date}</span>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <button onClick={() => onEdit(task)} className="rounded-full border border-white/10 p-2 text-zinc-300 hover:bg-white/10">
-            <Pencil size={14} />
-          </button>
-          <button onClick={() => onDelete(task.id)} className="rounded-full border border-white/10 p-2 text-zinc-300 hover:bg-white/10">
-            <Trash2 size={14} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onEdit(task)}
+              className="rounded-full border border-white/10 p-2 text-zinc-300 hover:bg-white/10"
+            >
+              <Pencil size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(task.id)}
+              className="rounded-full border border-white/10 p-2 text-zinc-300 hover:bg-white/10"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -200,6 +232,25 @@ export function TaskDashboard() {
     }
   }
 
+  async function updateTaskStatus(taskId, status) {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/tasks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId, updateData: { status } }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update task status");
+      }
+
+      await loadTasks(dateValue);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function updateDayStatus(value) {
     const nextStatus = Number(value);
     setStatusOfDay(nextStatus);
@@ -217,8 +268,8 @@ export function TaskDashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      {loading ? <LoadingSpinner /> : null}
+    <div className="relative space-y-6">
+      {loading ? <LoadingSpinner overlay /> : null}
 
       <section className="rounded-3xl border border-white/10 bg-[#0b1020]/85 p-5 shadow-glow">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -280,6 +331,7 @@ export function TaskDashboard() {
                 setShowForm(true);
               }}
               onDelete={deleteTask}
+              onStatusChange={updateTaskStatus}
             />
           ))
         ) : (

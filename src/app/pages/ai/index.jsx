@@ -6,7 +6,6 @@ import NewAIPlan from "@/app/components/ai/NewAIPlan";
 import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { useRestSecurityClient } from "@/app/hooks/securityClient";
 import RoadmapDetails from "./RoadmapDetails";
 import Loading from "@/app/components/LoadingSpinner";
 import { useToast } from "@/hooks/use-toast";
@@ -15,10 +14,29 @@ const AIPage = ({ userId }) => {
 	const [plans, setPlans] = useState([]);
 	const [showNewPlan, setShowNewPlan] = useState(false);
 	const router = useRouter();
-	const restClient = useRestSecurityClient();
 	const [roadmapData, setRoadmapData] = useState(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const { toast } = useToast();
+
+	const apiFetch = async (path, options = {}) => {
+		const response = await fetch(`/api${path}`, {
+			credentials: "include",
+			headers: {
+				"Content-Type": "application/json",
+				...(options.headers || {}),
+			},
+			...options,
+		});
+
+		if (!response.ok) {
+			const errorData = await response.json().catch(() => ({}));
+			throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+		}
+
+		if (response.status === 204) return null;
+
+		return response.json();
+	};
 
 	const handleCreatePlan = async (inputData) => {
 		try {
@@ -27,20 +45,25 @@ const AIPage = ({ userId }) => {
 				skillLevel: inputData.level || 0,
 				monthsAllocated: parseInt(inputData.months),
 				hoursPerDay: parseInt(inputData.hoursPerDay),
-				startDate: new Date(),
+				startDate: new Date().toISOString().split("T")[0],
 			};
 
 			setShowNewPlan(false);
 			setIsLoading(true);
 
-			const response = await restClient.post(`/ai/roadmap/new`, plan);
-			console.log("AI RESPONSE :: ");
-			console.log(response);
+			const response = await apiFetch(`/ai/roadmap/new`, {
+				method: "POST",
+				body: JSON.stringify(plan),
+			});
 			if (response.result) {
 				setRoadmapData(response.result);
 			}
 		} catch (error) {
-			console.error("Error creating plan:", error);
+			toast({
+				title: "Oops! Something went wrong while creating plan",
+				description: error.message,
+				variant: "destructive",
+			});
 		} finally {
 			setIsLoading(false);
 		}
@@ -49,13 +72,16 @@ const AIPage = ({ userId }) => {
 	const getAllRoadmaps = async () => {
 		try {
 			setIsLoading(true);
-			const response = await restClient.get(`/ai/roadmap/get/${userId}`);
+			const response = await apiFetch(`/ai/roadmap/get/${userId}`);
 			if (response.result) {
-				console.log(response.result);
 				setPlans(response.result);
 			}
 		} catch (error) {
-			console.error("Error creating plan:", error);
+			toast({
+				title: "Oops! Something went wrong while fetching plans",
+				description: error.message,
+				variant: "destructive",
+			});
 		} finally {
 			setIsLoading(false);
 		}
@@ -73,8 +99,10 @@ const AIPage = ({ userId }) => {
 				delete data.plan;
 			}
 
-			const response = await restClient.post("/ai/roadmap/confirm", { data });
-			console.log(response);
+			const response = await apiFetch("/ai/roadmap/confirm", {
+				method: "POST",
+				body: JSON.stringify({ data }),
+			});
 			if (response.result) {
 				setRoadmapData(null);
 				toast({
@@ -103,7 +131,7 @@ const AIPage = ({ userId }) => {
 
 	return (
 		<div className="relative w-full h-full">
-			{isLoading && <Loading />}
+			{isLoading && <Loading overlay />}
 			{roadmapData ? (
 				<RoadmapDetails
 					roadmapData={roadmapData}

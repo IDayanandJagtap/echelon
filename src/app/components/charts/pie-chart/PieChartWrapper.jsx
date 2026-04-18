@@ -5,10 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useEffect, useState } from "react";
 import PieChart from "./PieChart";
 import DateList from "./DateList";
-import { useRestSecurityClient } from "@/app/hooks/securityClient";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getStartAndEndDate } from "@/app/utils/date-utils";
+import { formatDate, getStartAndEndDate } from "@/app/utils/date-utils";
 import Loading from "../../LoadingSpinner";
 
 const PieChartWrapper = () => {
@@ -18,9 +17,17 @@ const PieChartWrapper = () => {
 	const [statusOfDay, setStatusOfDay] = useState(0);
 	const allowedDataRangesForLineChart = CHART_CONSTANTS.pieChartSelectDataRanges;
 	const pieChartLabels = CHART_CONSTANTS.weekdaysInShort;
-	const restClient = useRestSecurityClient();
 	const [productivityData, setProductivityData] = useState([]);
 	const [isLoading, setIsLoading] = useState([]);
+
+	const apiFetch = async (path) => {
+		const response = await fetch(`/api${path}`, { cache: "no-store" });
+		if (!response.ok) {
+			const errorData = await response.json().catch(() => ({}));
+			throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+		}
+		return response.json();
+	};
 
 	// Mock API call to fetch day-specific data
 	const fetchDayData = async (day) => {
@@ -52,11 +59,6 @@ const PieChartWrapper = () => {
 
 	const handleOnDataRangeChange = (value) => {
 		setSelectedDataRange(value);
-		if (value === CHART_CONSTANTS.dataRanges.yearly) {
-			console.log("yearly");
-		} else if (value === CHART_CONSTANTS.dataRanges.monthly) {
-			console.log("monthly");
-		}
 	};
 
 	const handleChangeDateRangeByOne = (direction) => {
@@ -71,10 +73,12 @@ const PieChartWrapper = () => {
 	const getPieChartData = async (selectedDataRange, operation) => {
 		try {
 			const { startDate, endDate } = getStartAndEndDate(new Date(), selectedDataRange, operation);
+			const formattedStartDate = formatDate(startDate);
+			const formattedEndDate = formatDate(endDate);
 
 			setIsLoading(true);
-			const response = await restClient.get(
-				`/day/productivity/status/pie-chart?startDate=${startDate}&endDate=${endDate}&statusOfDay=${statusOfDay}`
+			const response = await apiFetch(
+				`/day/productivity/status/pie-chart?startDate=${formattedStartDate}&endDate=${formattedEndDate}&statusOfDay=${statusOfDay}`
 			);
 
 			// transform data:
@@ -83,8 +87,7 @@ const PieChartWrapper = () => {
 				pData.push(response.result.data[day].count);
 			});
 			setProductivityData(pData);
-		} catch (error) {
-			console.log(error);
+		} catch {
 		} finally {
 			setIsLoading(false);
 		}
@@ -108,7 +111,7 @@ const PieChartWrapper = () => {
 
 	return (
 		<div className="w-full h-full flex-1 flex flex-col bg-[#111] gap-8 p-4 rounded-md">
-			{isLoading && <Loading />}
+			{isLoading && <Loading overlay />}
 			<div className="flex justify-between">
 				<h3 className="text-xl font-bold text-slate-300">Productivity by Days</h3>
 				<div className="flex gap-2 items-center">

@@ -48,7 +48,6 @@ const NewTask = ({ onClose, onSubmit }) => {
 				});
 			}
 		} catch (error) {
-			console.log(error);
 			toast({
 				title: "Oops! Something went wrong while creating task",
 				description: error.message,
@@ -72,7 +71,7 @@ const NewTask = ({ onClose, onSubmit }) => {
 
 			{/* Modal Content */}
 			<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] sm:w-[90%] md:w-[80%] lg:w-[70%] xl:w-[60%] max-w-2xl mx-auto">
-				{isLoading && <Loading />}
+				{isLoading && <Loading overlay />}
 				<div className="bg-[#111] rounded-lg shadow-lg">
 					{/* Header */}
 					<div className="flex items-center justify-between p-3 border-b border-slate-700">

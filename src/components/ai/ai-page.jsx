@@ -61,8 +61,8 @@ export function AIPage({ userId }) {
   }
 
   return (
-    <div className="space-y-6">
-      {loading ? <LoadingSpinner /> : null}
+    <div className="relative space-y-6">
+      {loading ? <LoadingSpinner overlay /> : null}
 
       {previewRoadmap ? (
         <RoadmapDetails roadmapData={previewRoadmap} preview onConfirm={confirmRoadmap} onCancel={() => setPreviewRoadmap(null)} />

@@ -4,8 +4,7 @@ import { BsStars } from "react-icons/bs";
 import { FaChartSimple } from "react-icons/fa6";
 import { FaTasks, FaFire } from "react-icons/fa";
 import PropTypes from "prop-types";
-import { useRestSecurityClient } from "@/app/hooks/securityClient";
-import { signOutAction } from "@/app/actions/auth";
+import { UserProfilePopover } from "@/components/layout/user-profile-popover";
 const navOptions = [
 	{ label: "Visualize", path: "/visualize", icon: <FaChartSimple size={24} /> },
 	{ label: "Tasks", path: "/tasks", icon: <FaTasks /> },
@@ -15,7 +14,6 @@ const navOptions = [
 const Navbar = ({ isMobileView, user }) => {
 	const [selectedTab, setSelectedTab] = useState("/");
 	const [streak, setStreak] = useState(0);
-	const restClient = useRestSecurityClient();
 	const router = useRouter();
 	const pathname = usePathname();
 
@@ -25,8 +23,13 @@ const Navbar = ({ isMobileView, user }) => {
 	};
 
 	const getStreak = async () => {
-		const response = await restClient.get("/day/streak");
-		setStreak(response?.result?.streak || 0);
+		try {
+			const response = await fetch("/api/day/streak", { cache: "no-store" });
+			const data = await response.json();
+			setStreak(data?.result?.streak || 0);
+		} catch {
+			setStreak(0);
+		}
 	};
 
 	useEffect(() => {
@@ -72,14 +75,7 @@ const Navbar = ({ isMobileView, user }) => {
 					<FaFire className="text-red-500 " size={26} />
 					<span className="text-amber-600">{streak}</span>
 				</div>
-				<form action={signOutAction} className="w-full">
-					<button
-						type="submit"
-						className="text-xs text-zinc-300 border border-zinc-700 rounded px-2 py-1 hover:bg-zinc-800"
-					>
-						{user?.email || "Sign out"}
-					</button>
-				</form>
+				<UserProfilePopover user={user} />
 			</div>
 		</div>
 	);

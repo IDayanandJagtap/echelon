@@ -45,7 +45,12 @@ export function RoadmapDetails({ roadmapData, roadmapId, userId, onConfirm, onCa
   }
 
   if (loading) {
-    return <LoadingSpinner />;
+    return (
+      <div className="relative rounded-3xl border border-white/10 bg-[#0b1020]/85 p-5 shadow-glow">
+        <LoadingSpinner overlay />
+        <div className="min-h-[320px]" />
+      </div>
+    );
   }
 
   const plan = data?.plan || data?.ai_response || [];

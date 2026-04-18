@@ -157,8 +157,8 @@ export function VisualizePage() {
   }, []);
 
   return (
-    <div className="space-y-6">
-      {loading ? <LoadingSpinner /> : null}
+    <div className="relative space-y-6">
+      {loading ? <LoadingSpinner overlay /> : null}
 
       <section className="rounded-3xl border border-white/10 bg-[#0b1020]/85 p-5 shadow-glow">
         <div className="flex flex-wrap items-center justify-between gap-4">

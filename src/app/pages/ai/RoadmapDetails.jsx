@@ -6,7 +6,6 @@ import { X, RefreshCw, Edit, Check, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { useRestSecurityClient } from "@/app/hooks/securityClient";
 import Loading from "@/app/components/LoadingSpinner";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,16 +14,35 @@ const RoadmapDetails = ({ roadmapData = null, onConfirm, onCancel, roadmapId = n
 	const [data, setRoadmapData] = useState(roadmapData);
 	const [expandedStep, setExpandedStep] = useState(null);
 	const [isLoading, setIsLoading] = useState(!data);
-	const restClient = useRestSecurityClient();
 	const { toast } = useToast();
 	const router = useRouter();
+
+	const apiFetch = async (path, options = {}) => {
+		const response = await fetch(`/api${path}`, {
+			credentials: "include",
+			headers: {
+				"Content-Type": "application/json",
+				...(options.headers || {}),
+			},
+			...options,
+		});
+
+		if (!response.ok) {
+			const errorData = await response.json().catch(() => ({}));
+			throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+		}
+
+		if (response.status === 204) return null;
+
+		return response.json();
+	};
 
 	useEffect(() => {
 		const fetchRoadmapDetails = async () => {
 			if (!id || roadmapData) return;
 			try {
 				setIsLoading(true);
-				const response = await restClient.get(`/ai/roadmap/get/${userId}/${id}`);
+				const response = await apiFetch(`/ai/roadmap/get/${userId}/${id}`);
 				if (response?.result) {
 					const formattedData = response.result[0];
 					formattedData.plan = formattedData.ai_response;
@@ -34,13 +52,16 @@ const RoadmapDetails = ({ roadmapData = null, onConfirm, onCancel, roadmapId = n
 					setRoadmapData(formattedData);
 				}
 			} catch (err) {
-				console.error("Error fetching roadmap details:", err);
+				toast({
+					title: "Oops! Something went wrong while fetching roadmap details",
+					description: err.message,
+					variant: "destructive",
+				});
 			} finally {
 				setIsLoading(false);
 			}
 		};
 		fetchRoadmapDetails();
-		console.log(data);
 	}, [id, roadmapData, userId]);
 
 	const toggleStep = (index) => {
@@ -50,8 +71,8 @@ const RoadmapDetails = ({ roadmapData = null, onConfirm, onCancel, roadmapId = n
 	const handleCancel = () => {
 		onCancel();
 	};
-	const handleRecreate = () => console.log("Recreate action");
-	const handleEdit = () => console.log("Edit action");
+	const handleRecreate = () => {};
+	const handleEdit = () => {};
 
 	const handleConfirm = () => {
 		onConfirm(data);
@@ -60,8 +81,7 @@ const RoadmapDetails = ({ roadmapData = null, onConfirm, onCancel, roadmapId = n
 	const handleDelete = async () => {
 		try {
 			setIsLoading(true);
-			const response = await restClient.delete(`/ai/roadmap/delete/${userId}/${id}`);
-			console.log(response);
+			const response = await apiFetch(`/ai/roadmap/delete/${userId}/${id}`, { method: "DELETE" });
 			if (response.message) {
 				setRoadmapData(null);
 				toast({
@@ -80,13 +100,9 @@ const RoadmapDetails = ({ roadmapData = null, onConfirm, onCancel, roadmapId = n
 		}
 	};
 
-	useEffect(() => {
-		console.log(data);
-	}, []);
-
 	return (
 		<div className="p-4 w-full h-full mx-auto relative">
-			{isLoading && <Loading />}
+			{isLoading && <Loading overlay />}
 			{/* Top Navigation */}
 			<div className="flex justify-between items-center border-b border-slate-600 pb-6 px-2">
 				<div className="flex-col flex items-start space-y-2 lg:items-center lg:flex-row lg:space-y-0 lg:space-x-4">

@@ -7,19 +7,28 @@ export function AppShell({ user, children }) {
   const [isMobileView, setIsMobileView] = useState(false);
 
   useEffect(() => {
-    if (window.innerWidth <= 768) {
-      setIsMobileView(true);
-    }
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+
+    const updateMobileView = () => {
+      setIsMobileView(mediaQuery.matches);
+    };
+
+    updateMobileView();
+    mediaQuery.addEventListener("change", updateMobileView);
+
+    return () => mediaQuery.removeEventListener("change", updateMobileView);
   }, []);
 
   return (
     <div className="root-container bg-zinc-950 text-zinc-300">
-      <div className="root-content flex">
-        <aside className={`main-side-panel ${isMobileView ? "w-[10%]" : "w-[145px]"}`}>
+      <div className="root-content flex h-full w-full gap-2 overflow-hidden">
+        <aside
+          className={`main-side-panel flex-shrink-0 ${isMobileView ? "w-[68px]" : "w-[145px]"}`}
+        >
           <Navbar isMobileView={isMobileView} user={user} />
         </aside>
 
-        <main className={`main-content-container ${isMobileView ? "w-[88%]" : "w-full"}`}>
+        <main className="main-content-container relative min-w-0 flex-1 overflow-hidden">
           {children}
         </main>
       </div>
