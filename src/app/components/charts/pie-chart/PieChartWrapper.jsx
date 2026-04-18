@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { formatDate, getStartAndEndDate } from "@/app/utils/date-utils";
 import Loading from "../../LoadingSpinner";
+import { fetchPieChartProductivity } from "@/app/pages/charts/services/productivity.client";
 
 const PieChartWrapper = () => {
 	const [selectedDataRange, setSelectedDataRange] = useState(CHART_CONSTANTS.dataRanges.monthly);
@@ -19,15 +20,6 @@ const PieChartWrapper = () => {
 	const pieChartLabels = CHART_CONSTANTS.weekdaysInShort;
 	const [productivityData, setProductivityData] = useState([]);
 	const [isLoading, setIsLoading] = useState([]);
-
-	const apiFetch = async (path) => {
-		const response = await fetch(`/api${path}`, { cache: "no-store" });
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-		}
-		return response.json();
-	};
 
 	// Mock API call to fetch day-specific data
 	const fetchDayData = async (day) => {
@@ -77,14 +69,12 @@ const PieChartWrapper = () => {
 			const formattedEndDate = formatDate(endDate);
 
 			setIsLoading(true);
-			const response = await apiFetch(
-				`/day/productivity/status/pie-chart?startDate=${formattedStartDate}&endDate=${formattedEndDate}&statusOfDay=${statusOfDay}`
-			);
+			const response = await fetchPieChartProductivity(formattedStartDate, formattedEndDate, statusOfDay);
 
 			// transform data:
 			let pData = [];
-			Object.keys(response.result.data).forEach((day) => {
-				pData.push(response.result.data[day].count);
+			Object.keys(response).forEach((day) => {
+				pData.push(response[day].count);
 			});
 			setProductivityData(pData);
 		} catch {

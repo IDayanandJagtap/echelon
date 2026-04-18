@@ -4,24 +4,10 @@ import PropTypes from "prop-types";
 import { LogOut } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { signOutAction } from "@/app/actions/auth";
+import { getUserProfileSummary } from "@/components/layout/services/profile";
 
 export function UserProfilePopover({ user }) {
-  const displayName =
-    user?.user_metadata?.full_name ||
-    user?.user_metadata?.name ||
-    user?.email?.split("@")[0] ||
-    "User";
-
-  const email = user?.email || "";
-
-  const initials =
-    displayName
-      .split(" ")
-      .filter(Boolean)
-      .map((part) => part[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "U";
+  const { displayName, email, initials } = getUserProfileSummary(user);
 
   return (
     <Popover>

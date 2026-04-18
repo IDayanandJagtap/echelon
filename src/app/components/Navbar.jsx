@@ -5,6 +5,7 @@ import { FaChartSimple } from "react-icons/fa6";
 import { FaTasks, FaFire } from "react-icons/fa";
 import PropTypes from "prop-types";
 import { UserProfilePopover } from "@/components/layout/user-profile-popover";
+import { fetchTodayStreak } from "@/app/pages/tasks/services/day.client";
 const navOptions = [
 	{ label: "Visualize", path: "/visualize", icon: <FaChartSimple size={24} /> },
 	{ label: "Tasks", path: "/tasks", icon: <FaTasks /> },
@@ -24,9 +25,7 @@ const Navbar = ({ isMobileView, user }) => {
 
 	const getStreak = async () => {
 		try {
-			const response = await fetch("/api/day/streak", { cache: "no-store" });
-			const data = await response.json();
-			setStreak(data?.result?.streak || 0);
+			setStreak(await fetchTodayStreak());
 		} catch {
 			setStreak(0);
 		}

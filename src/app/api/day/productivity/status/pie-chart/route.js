@@ -1,34 +1,21 @@
 import { json, getAuthedContext } from "@/app/api/_utils";
-import { groupDaysByWeekday } from "@/lib/productivity";
+import { getPieChartProductivityForUser } from "@/app/pages/charts/services/productivity.server";
 
 export async function GET(request) {
-  const { user, supabase } = await getAuthedContext();
-  const url = new URL(request.url);
-  const startDate = url.searchParams.get("startDate");
-  const endDate = url.searchParams.get("endDate");
-  const statusOfDay = url.searchParams.get("statusOfDay");
+  try {
+    const { user, supabase } = await getAuthedContext();
+    const url = new URL(request.url);
+    const startDate = url.searchParams.get("startDate");
+    const endDate = url.searchParams.get("endDate");
+    const statusOfDay = url.searchParams.get("statusOfDay");
 
-  if (!startDate || !endDate) {
-    return json({ success: false, message: "startDate and endDate are required" }, { status: 400 });
-  }
+    if (!startDate || !endDate) {
+      return json({ success: false, message: "startDate and endDate are required" }, { status: 400 });
+    }
 
-  let query = supabase
-    .from("days")
-    .select("id, user_id, day_date, status_of_day, streak, comment")
-    .eq("user_id", user.id)
-    .gte("day_date", startDate)
-    .lte("day_date", endDate)
-    .order("day_date", { ascending: true });
-
-  if (statusOfDay !== null && statusOfDay !== undefined && statusOfDay !== "" ) {
-    query = query.eq("status_of_day", Number(statusOfDay));
-  }
-
-  const { data: days = [], error } = await query;
-
-  if (error) {
+    const data = await getPieChartProductivityForUser(supabase, user.id, startDate, endDate, statusOfDay);
+    return json({ success: true, result: { data } });
+  } catch (error) {
     return json({ success: false, message: error.message }, { status: 500 });
   }
-
-  return json({ success: true, result: { data: groupDaysByWeekday(days, statusOfDay) } });
 }

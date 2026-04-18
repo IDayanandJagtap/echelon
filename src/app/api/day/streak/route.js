@@ -1,15 +1,12 @@
 import { json, getAuthedContext } from "@/app/api/_utils";
+import { getTodayStreakForUser } from "@/app/pages/tasks/services/day.server";
 
 export async function GET() {
-  const { user, supabase } = await getAuthedContext();
-  const today = new Date().toISOString().split("T")[0];
-
-  const { data: day } = await supabase
-    .from("days")
-    .select("streak")
-    .eq("user_id", user.id)
-    .eq("day_date", today)
-    .maybeSingle();
-
-  return json({ success: true, result: { streak: day?.streak || 0 } });
+  try {
+    const { user, supabase } = await getAuthedContext();
+    const streak = await getTodayStreakForUser(supabase, user.id);
+    return json({ success: true, result: { streak } });
+  } catch (error) {
+    return json({ success: false, message: error.message }, { status: 500 });
+  }
 }

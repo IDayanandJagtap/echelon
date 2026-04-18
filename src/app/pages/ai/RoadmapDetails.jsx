@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import Loading from "@/app/components/LoadingSpinner";
 import { useToast } from "@/hooks/use-toast";
+import { fetchRoadmap, removeRoadmap } from "@/app/pages/ai/services/roadmaps.client";
 
 const RoadmapDetails = ({ roadmapData = null, onConfirm, onCancel, roadmapId = null, userId }) => {
 	const id = roadmapId;
@@ -17,39 +18,14 @@ const RoadmapDetails = ({ roadmapData = null, onConfirm, onCancel, roadmapId = n
 	const { toast } = useToast();
 	const router = useRouter();
 
-	const apiFetch = async (path, options = {}) => {
-		const response = await fetch(`/api${path}`, {
-			credentials: "include",
-			headers: {
-				"Content-Type": "application/json",
-				...(options.headers || {}),
-			},
-			...options,
-		});
-
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-		}
-
-		if (response.status === 204) return null;
-
-		return response.json();
-	};
-
 	useEffect(() => {
 		const fetchRoadmapDetails = async () => {
 			if (!id || roadmapData) return;
 			try {
 				setIsLoading(true);
-				const response = await apiFetch(`/ai/roadmap/get/${userId}/${id}`);
-				if (response?.result) {
-					const formattedData = response.result[0];
-					formattedData.plan = formattedData.ai_response;
-					delete formattedData.ai_response;
-					formattedData.monthsAllocated = formattedData.months_allocated;
-					formattedData.hoursPerDay = formattedData.hours_per_day;
-					setRoadmapData(formattedData);
+				const result = await fetchRoadmap(userId, id);
+				if (result) {
+					setRoadmapData(result);
 				}
 			} catch (err) {
 				toast({
@@ -81,7 +57,7 @@ const RoadmapDetails = ({ roadmapData = null, onConfirm, onCancel, roadmapId = n
 	const handleDelete = async () => {
 		try {
 			setIsLoading(true);
-			const response = await apiFetch(`/ai/roadmap/delete/${userId}/${id}`, { method: "DELETE" });
+			const response = await removeRoadmap(userId, id);
 			if (response.message) {
 				setRoadmapData(null);
 				toast({

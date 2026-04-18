@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Check, ChevronDown, ChevronUp, Trash2, X } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
+import { fetchRoadmap, removeRoadmap } from "@/app/pages/ai/services/roadmaps.client";
 
 export function RoadmapDetails({ roadmapData, roadmapId, userId, onConfirm, onCancel, preview = false }) {
   const [data, setData] = useState(roadmapData || null);
@@ -17,15 +18,9 @@ export function RoadmapDetails({ roadmapData, roadmapId, userId, onConfirm, onCa
 
       setLoading(true);
       try {
-        const response = await fetch(`/api/ai/roadmap/get/${userId}/${roadmapId}`, { cache: "no-store" });
-        const payload = await response.json();
-        const row = payload?.result?.[0];
-
+        const row = await fetchRoadmap(userId, roadmapId);
         if (row) {
-          setData({
-            ...row,
-            plan: row.ai_response,
-          });
+          setData(row);
         }
       } finally {
         setLoading(false);
@@ -38,7 +33,7 @@ export function RoadmapDetails({ roadmapData, roadmapId, userId, onConfirm, onCa
   async function handleDelete() {
     setLoading(true);
     try {
-      await fetch(`/api/ai/roadmap/delete/${userId}/${roadmapId}`, { method: "DELETE" });
+      await removeRoadmap(userId, roadmapId);
     } finally {
       setLoading(false);
     }

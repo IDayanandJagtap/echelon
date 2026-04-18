@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { formatDate, getStartAndEndDate } from "@/app/utils/date-utils";
 import Loading from "../../LoadingSpinner";
+import { fetchLineChartProductivity } from "@/app/pages/charts/services/productivity.client";
 
 const LineChartWrapper = () => {
 	const [selectedDataRange, setSelectedDataRange] = useState(CHART_CONSTANTS.dataRanges.weekly);
@@ -19,15 +20,6 @@ const LineChartWrapper = () => {
 	const productivityLevels = CHART_CONSTANTS.productivityLevels;
 
 	const [xAxisLabels, setXAxisLabels] = useState(CHART_CONSTANTS.weekdaysInShort); //
-
-	const apiFetch = async (path) => {
-		const response = await fetch(`/api${path}`, { cache: "no-store" });
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-		}
-		return response.json();
-	};
 
 	const handleOnDataRangeChange = (value) => {
 		setSelectedDataRange(value);
@@ -50,13 +42,11 @@ const LineChartWrapper = () => {
 			const formattedEndDate = formatDate(endDate);
 
 			setIsLoading(true);
-			const response = await apiFetch(
-				`/day/productivity/status/line-chart?startDate=${formattedStartDate}&endDate=${formattedEndDate}`
-			);
-			if (response.result) {
+			const response = await fetchLineChartProductivity(formattedStartDate, formattedEndDate);
+			if (response) {
 				let status = [];
 				let labels = [];
-				response.result.forEach((item) => {
+				response.forEach((item) => {
 					if (String(dataRange).toLowerCase() == "monthly") labels.push(item.date);
 					else {
 						labels.push(new Date(item.date).toDateString());

@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { NewAIPlan } from "@/components/ai/new-ai-plan";
 import { RoadmapDetails } from "@/components/ai/roadmap-details";
+import { confirmRoadmap as confirmRoadmapRequest, fetchRoadmaps, generateRoadmapPreview } from "@/app/pages/ai/services/roadmaps.client";
 
 export function AIPage({ userId }) {
   const [roadmaps, setRoadmaps] = useState([]);
@@ -15,9 +16,7 @@ export function AIPage({ userId }) {
   async function loadRoadmaps() {
     setLoading(true);
     try {
-      const response = await fetch(`/api/ai/roadmap/get/${userId}`, { cache: "no-store" });
-      const data = await response.json();
-      setRoadmaps(data?.result || []);
+      setRoadmaps(await fetchRoadmaps(userId));
     } finally {
       setLoading(false);
     }
@@ -30,13 +29,8 @@ export function AIPage({ userId }) {
   async function generateRoadmap(form) {
     setLoading(true);
     try {
-      const response = await fetch("/api/ai/roadmap/new", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      const data = await response.json();
-      setPreviewRoadmap(data?.result || null);
+      const response = await generateRoadmapPreview(form);
+      setPreviewRoadmap(response?.result || null);
       setShowNewPlan(false);
     } finally {
       setLoading(false);
@@ -46,12 +40,8 @@ export function AIPage({ userId }) {
   async function confirmRoadmap(data) {
     setLoading(true);
     try {
-      const response = await fetch("/api/ai/roadmap/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data }),
-      });
-      if (response.ok) {
+      const response = await confirmRoadmapRequest(data);
+      if (response) {
         setPreviewRoadmap(null);
         await loadRoadmaps();
       }

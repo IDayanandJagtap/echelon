@@ -10,6 +10,8 @@ import NewTask from "@/app/components/NewTask";
 import Loading from "@/app/components/LoadingSpinner";
 import { GLOBAL_CONSTANTS } from "@/app/utils/GLOBAL_CONSTANTS";
 import { useToast } from "@/hooks/use-toast";
+import { createTask, deleteTask, fetchTasksForDate, updateDayStatus, updateTask } from "@/app/pages/tasks/services/tasks.client";
+import { fetchRandomQuote } from "@/app/pages/tasks/services/quotes.client";
 
 const TaskDashboard = ({ userId }) => {
 	const [date, setDate] = useState(new Date());
@@ -20,26 +22,6 @@ const TaskDashboard = ({ userId }) => {
 	const [isLoading, setIsLoading] = useState(false);
 	const [quote, setQuote] = useState("");
 	const { toast } = useToast();
-
-	const apiFetch = async (path, options = {}) => {
-		const response = await fetch(`/api${path}`, {
-			credentials: "include",
-			headers: {
-				"Content-Type": "application/json",
-				...(options.headers || {}),
-			},
-			...options,
-		});
-
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-		}
-
-		if (response.status === 204) return null;
-
-		return response.json();
-	};
 
 	const handleDropdownChange = (dropdown, newValue) => {
 		setSelectedFilters({ ...selectedFilters, [dropdown]: newValue });
@@ -61,9 +43,9 @@ const TaskDashboard = ({ userId }) => {
 				return;
 			}
 			setIsLoading(true);
-			const response = await apiFetch(`/tasks/?date=${date}&userId=${userId}`);
-			setTaskList(response?.result?.tasks || []);
-			setStatusOfDay(response?.result?.statusOfDay);
+			const response = await fetchTasksForDate(date, userId);
+			setTaskList(response.tasks || []);
+			setStatusOfDay(response.statusOfDay);
 		} catch (error) {
 			toast({
 				title: "Oops! Something went wrong while fetching tasks",
@@ -71,9 +53,7 @@ const TaskDashboard = ({ userId }) => {
 				variant: "destructive",
 			});
 		} finally {
-			setTimeout(() => {
-				setIsLoading(false);
-			}, 2000);
+			setIsLoading(false);
 		}
 	};
 
@@ -87,10 +67,7 @@ const TaskDashboard = ({ userId }) => {
 
 	const createNewTask = async (inputData) => {
 		try {
-			return await apiFetch(`/tasks`, {
-				method: "POST",
-				body: JSON.stringify(inputData),
-			});
+			return await createTask(inputData);
 		} catch (error) {
 			toast({
 				title: "Oops! Something went wrong while creating task",
@@ -98,8 +75,7 @@ const TaskDashboard = ({ userId }) => {
 				variant: "destructive",
 			});
 		} finally {
-			const dateInRequiredFormat = new Date(date).toISOString().split("T")[0];
-			getTasks(dateInRequiredFormat, userId);
+			getTasks(date, userId);
 		}
 	};
 
@@ -110,10 +86,7 @@ const TaskDashboard = ({ userId }) => {
 				throw new Error("Task Id or updated data is missing");
 			}
 			setIsLoading(true);
-			await apiFetch(`/tasks`, {
-				method: "PUT",
-				body: JSON.stringify({ taskId, updateData: updatedData }),
-			});
+			await updateTask(taskId, updatedData);
 		} catch (error) {
 			toast({
 				title: "Oops! Something went wrong while updating the task data",
@@ -121,8 +94,7 @@ const TaskDashboard = ({ userId }) => {
 				variant: "destructive",
 			});
 		} finally {
-			const dateInRequiredFormat = new Date(date).toISOString().split("T")[0];
-			await getTasks(dateInRequiredFormat, userId);
+			await getTasks(date, userId);
 			setIsLoading(false);
 		}
 	};
@@ -133,7 +105,7 @@ const TaskDashboard = ({ userId }) => {
 				throw new Error("Task Id is missing");
 			}
 			setIsLoading(true);
-			await apiFetch(`/tasks?taskId=${taskId}`, { method: "DELETE" });
+			await deleteTask(taskId);
 			toast({ title: "Deleted the task successfully" });
 		} catch (error) {
 			toast({
@@ -142,23 +114,15 @@ const TaskDashboard = ({ userId }) => {
 				variant: "destructive",
 			});
 		} finally {
-			const dateInRequiredFormat = new Date(date).toISOString().split("T")[0];
-			await getTasks(dateInRequiredFormat, userId);
+			await getTasks(date, userId);
 			setIsLoading(false);
 		}
 	};
 
 	const handleDayUpdate = async (status) => {
 		try {
-			const requestBody = {
-				date: date,
-				statusOfDay: status,
-			};
 			setIsLoading(true);
-			await apiFetch(`/day`, {
-				method: "PUT",
-				body: JSON.stringify(requestBody),
-			});
+			await updateDayStatus(date, status);
 			toast({ title: "Updated the status successfully" });
 		} catch (error) {
 			toast({
@@ -167,24 +131,20 @@ const TaskDashboard = ({ userId }) => {
 				variant: "destructive",
 			});
 		} finally {
-			// const dateInRequiredFormat = new Date(date).toISOString().split("T")[0];
-			// await getTasks(dateInRequiredFormat, auth.userId);
 			setIsLoading(false);
 		}
 	};
 
 	const getQuote = async () => {
 		try {
-			const response = await apiFetch(`/quote`);
-			setQuote(response?.quote || "");
+			setQuote(await fetchRandomQuote());
 		} catch (error) {
 			setQuote("");
 		}
 	};
 	useEffect(() => {
 		if (date) {
-			const dateInRequiredFormat = new Date(date).toISOString().split("T")[0];
-			getTasks(dateInRequiredFormat, userId);
+			getTasks(date, userId);
 		}
 	}, [date, userId]);
 

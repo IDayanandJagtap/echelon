@@ -5,6 +5,8 @@ import { CHART_CONSTANTS } from "@/lib/chart-constants";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getStartAndEndDate } from "@/lib/dates";
+import { fetchLineChartProductivity, fetchPieChartProductivity } from "@/app/pages/charts/services/productivity.client";
+import { formatDate } from "@/lib/dates";
 
 function LineChart({ labels, values }) {
   const width = 900;
@@ -122,12 +124,7 @@ export function VisualizePage() {
     const { startDate, endDate } = getStartAndEndDate(new Date(), nextRange, nextDelta);
     setLoading(true);
     try {
-      const response = await fetch(
-        `/api/day/productivity/status/line-chart?startDate=${startDate}&endDate=${endDate}`,
-        { cache: "no-store" }
-      );
-      const data = await response.json();
-      const result = data?.result || [];
+      const result = await fetchLineChartProductivity(formatDate(startDate), formatDate(endDate));
       setLineLabels(result.map((item) => (String(nextRange).toLowerCase() === "monthly" ? item.date : item.day)));
       setLineValues(result.map((item) => item.status));
     } finally {
@@ -139,12 +136,7 @@ export function VisualizePage() {
     const { startDate, endDate } = getStartAndEndDate(new Date(), nextRange, nextDelta);
     setLoading(true);
     try {
-      const response = await fetch(
-        `/api/day/productivity/status/pie-chart?startDate=${startDate}&endDate=${endDate}&statusOfDay=${nextStatus}`,
-        { cache: "no-store" }
-      );
-      const data = await response.json();
-      const result = data?.result?.data || {};
+      const result = await fetchPieChartProductivity(formatDate(startDate), formatDate(endDate), nextStatus);
       setPieValues(pieLabels.map((label) => result[label.toLowerCase()]?.count || 0));
     } finally {
       setLoading(false);

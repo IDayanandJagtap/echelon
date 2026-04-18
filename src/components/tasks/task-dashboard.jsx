@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { formatDate, toDisplayDate } from "@/lib/dates";
+import { createTask, deleteTask as deleteTaskRequest, fetchTasksForDate, updateDayStatus as updateDayStatusRequest, updateTask } from "@/app/pages/tasks/services/tasks.client";
+import { fetchRandomQuote } from "@/app/pages/tasks/services/quotes.client";
 
 const statusLabels = ["Idle", "Improving", "Moderate", "Efficient", "Peak"];
 const taskStatuses = ["pending", "inProgress", "done", "toDo", "notDone"];
@@ -166,10 +168,9 @@ export function TaskDashboard() {
   async function loadTasks(targetDate = dateValue) {
     setLoading(true);
     try {
-      const response = await fetch(`/api/tasks?date=${targetDate}`, { cache: "no-store" });
-      const data = await response.json();
-      setTasks(data?.result?.tasks || []);
-      setStatusOfDay(data?.result?.statusOfDay ?? 0);
+      const response = await fetchTasksForDate(targetDate, "");
+      setTasks(response.tasks || []);
+      setStatusOfDay(response.statusOfDay ?? 0);
     } finally {
       setLoading(false);
     }
@@ -177,9 +178,7 @@ export function TaskDashboard() {
 
   async function loadQuote() {
     try {
-      const response = await fetch("/api/quote", { cache: "no-store" });
-      const data = await response.json();
-      setQuote(data?.quote || "");
+      setQuote(await fetchRandomQuote());
     } catch {
       setQuote("");
     }
@@ -194,26 +193,17 @@ export function TaskDashboard() {
   }, [dateValue]);
 
   async function saveTask(payload) {
-    const body = {
-      ...payload,
-      taskDate: formatDate(payload.taskDate),
-    };
-
     setLoading(true);
     try {
-      const response = await fetch("/api/tasks", {
-        method: editingTask ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingTask ? { taskId: editingTask.id, updateData: body } : body),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to save task");
+      if (editingTask) {
+        await updateTask(editingTask.id, payload);
+      } else {
+        await createTask(payload);
       }
 
       setShowForm(false);
       setEditingTask(null);
-      await loadTasks(body.taskDate);
+      await loadTasks(formatDate(payload.taskDate));
     } finally {
       setLoading(false);
     }
@@ -222,10 +212,7 @@ export function TaskDashboard() {
   async function deleteTask(taskId) {
     setLoading(true);
     try {
-      const response = await fetch(`/api/tasks?taskId=${taskId}`, { method: "DELETE" });
-      if (!response.ok) {
-        throw new Error("Failed to delete task");
-      }
+      await deleteTaskRequest(taskId);
       await loadTasks(dateValue);
     } finally {
       setLoading(false);
@@ -235,15 +222,7 @@ export function TaskDashboard() {
   async function updateTaskStatus(taskId, status) {
     setLoading(true);
     try {
-      const response = await fetch("/api/tasks", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId, updateData: { status } }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update task status");
-      }
+      await updateTask(taskId, { status });
 
       await loadTasks(dateValue);
     } finally {
@@ -254,11 +233,7 @@ export function TaskDashboard() {
   async function updateDayStatus(value) {
     const nextStatus = Number(value);
     setStatusOfDay(nextStatus);
-    await fetch("/api/day", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: dateValue, statusOfDay: nextStatus }),
-    });
+    await updateDayStatusRequest(dateValue, nextStatus);
   }
 
   function shiftDate(offset) {

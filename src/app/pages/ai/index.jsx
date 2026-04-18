@@ -10,6 +10,7 @@ import RoadmapDetails from "./RoadmapDetails";
 import Loading from "@/app/components/LoadingSpinner";
 import { useToast } from "@/hooks/use-toast";
 import { GLOBAL_CONSTANTS } from "@/app/utils/GLOBAL_CONSTANTS";
+import { confirmRoadmap, fetchRoadmaps, generateRoadmapPreview } from "@/app/pages/ai/services/roadmaps.client";
 const AIPage = ({ userId }) => {
 	const [plans, setPlans] = useState([]);
 	const [showNewPlan, setShowNewPlan] = useState(false);
@@ -18,43 +19,11 @@ const AIPage = ({ userId }) => {
 	const [isLoading, setIsLoading] = useState(true);
 	const { toast } = useToast();
 
-	const apiFetch = async (path, options = {}) => {
-		const response = await fetch(`/api${path}`, {
-			credentials: "include",
-			headers: {
-				"Content-Type": "application/json",
-				...(options.headers || {}),
-			},
-			...options,
-		});
-
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-		}
-
-		if (response.status === 204) return null;
-
-		return response.json();
-	};
-
 	const handleCreatePlan = async (inputData) => {
 		try {
-			const plan = {
-				title: inputData.title,
-				skillLevel: inputData.level || 0,
-				monthsAllocated: parseInt(inputData.months),
-				hoursPerDay: parseInt(inputData.hoursPerDay),
-				startDate: new Date().toISOString().split("T")[0],
-			};
-
 			setShowNewPlan(false);
 			setIsLoading(true);
-
-			const response = await apiFetch(`/ai/roadmap/new`, {
-				method: "POST",
-				body: JSON.stringify(plan),
-			});
+			const response = await generateRoadmapPreview(inputData);
 			if (response.result) {
 				setRoadmapData(response.result);
 			}
@@ -72,10 +41,7 @@ const AIPage = ({ userId }) => {
 	const getAllRoadmaps = async () => {
 		try {
 			setIsLoading(true);
-			const response = await apiFetch(`/ai/roadmap/get/${userId}`);
-			if (response.result) {
-				setPlans(response.result);
-			}
+			setPlans(await fetchRoadmaps(userId));
 		} catch (error) {
 			toast({
 				title: "Oops! Something went wrong while fetching plans",
@@ -94,15 +60,7 @@ const AIPage = ({ userId }) => {
 	const handleConfirmPlan = async (data) => {
 		try {
 			setIsLoading(true);
-			if (data.plan) {
-				data.aiResponse = data.plan;
-				delete data.plan;
-			}
-
-			const response = await apiFetch("/ai/roadmap/confirm", {
-				method: "POST",
-				body: JSON.stringify({ data }),
-			});
+			const response = await confirmRoadmap(data);
 			if (response.result) {
 				setRoadmapData(null);
 				toast({
