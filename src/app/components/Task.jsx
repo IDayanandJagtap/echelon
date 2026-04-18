@@ -10,7 +10,10 @@ import { Trash2, Edit2, Save, X, ChevronDown, ChevronUp } from "lucide-react";
 
 // Constants
 const statuses = [
+	{ label: "ToDo", value: "toDo" },
+	{ label: "Pending", value: "pending" },
 	{ label: "In progress", value: "inProgress" },
+	{ label: "On hold", value: "onHold" },
 	{ label: "Done", value: "done" },
 	{ label: "Not Done", value: "notDone" },
 ];
@@ -18,8 +21,10 @@ const statuses = [
 const statusColorLabel = {
 	done: { color: "bg-green-600", label: "Done" },
 	inProgress: { color: "bg-yellow-600", label: "In progress" },
+	onHold: { color: "bg-blue-600", label: "On hold" },
 	notDone: { color: "bg-red-600", label: "Not Done" },
-	todo: { color: "bg-neutral-600", label: "To do" },
+	toDo: { color: "bg-neutral-600", label: "ToDo" },
+	todo: { color: "bg-neutral-600", label: "ToDo" },
 	pending: { color: "bg-neutral-600", label: "Pending" },
 };
 

@@ -28,10 +28,13 @@ const TaskDashboard = ({ userId }) => {
 		handleDayUpdate(newValue);
 	};
 	const handleChangeDateByOne = (date, type) => {
+		const nextDate = new Date(date);
 		if (type === "next") {
-			setDate(new Date(date.setDate(date.getDate() + 1)));
+			nextDate.setDate(nextDate.getDate() + 1);
+			setDate(nextDate);
 		} else if (type === "previous") {
-			setDate(new Date(date.setDate(date.getDate() - 1)));
+			nextDate.setDate(nextDate.getDate() - 1);
+			setDate(nextDate);
 		}
 	};
 

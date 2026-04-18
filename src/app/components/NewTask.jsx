@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import PropTypes from "prop-types";
@@ -12,15 +11,16 @@ import { Label } from "@/components/ui/label";
 
 // Constants
 const categories = [
-	{ label: "Personal", value: "personal" },
-	{ label: "Work", value: "work" },
-	{ label: "Academics", value: "academics" },
+	{ label: "Personal", value: "Personal" },
+	{ label: "Work", value: "Work" },
+	{ label: "Academics", value: "Academics" },
 ];
 
 const defaultInputValues = {
 	title: "",
 	description: "",
 	category: "",
+	subCategory: "",
 	taskDate: new Date(),
 };
 
@@ -38,7 +38,7 @@ const NewTask = ({ onClose, onSubmit }) => {
 		try {
 			// Validate input data.
 			if (!inputData.title || !inputData.description || !inputData.category || !inputData.taskDate) {
-				throw new Error("All fields are required");
+				throw new Error("Title, description, category and due date are required");
 			}
 			setIsLoading(true);
 			const response = await onSubmit(inputData);
@@ -118,49 +118,51 @@ const NewTask = ({ onClose, onSubmit }) => {
 							/>
 						</div>
 
-						{/* Category and Date Picker */}
+						{/* Category and Sub Category */}
 						<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-							{/* Category Select */}
+							{/* Category with suggestions */}
 							<div className="space-y-1">
 								<Label htmlFor="category" className="text-xs sm:text-sm text-slate-300">
 									Category
 								</Label>
-								<Select
-									onValueChange={(value) => handleInputChange("category", value)}
+								<Input
+									id="category"
+									list="task-category-options"
+									className="bg-[#222] border-none h-9 sm:h-10 text-xs sm:text-sm text-slate-200 placeholder:text-slate-500"
+									placeholder="Type or pick category"
+									onChange={(e) => handleInputChange("category", e.target.value)}
 									value={inputData.category}
-								>
-									<SelectTrigger
-										id="category"
-										className="bg-[#222] border-none h-9 sm:h-10 text-xs sm:text-sm text-slate-200"
-									>
-										<SelectValue placeholder="Select category" />
-									</SelectTrigger>
-									<SelectContent className="bg-[#222] border-slate-700 ">
-										{categories.map((item) => (
-											<SelectItem
-												value={item.value}
-												key={item.value}
-												className="focus:bg-[#333] focus:text-slate-300 text-xs sm:text-sm text-white"
-											>
-												{item.label}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
+								/>
+								<datalist id="task-category-options">
+									{categories.map((item) => (
+										<option value={item.value} key={item.value} />
+									))}
+								</datalist>
 							</div>
-
-							{/* Date Picker */}
 							<div className="space-y-1">
-								<Label htmlFor="date" className="text-xs sm:text-sm text-slate-300">
-									Due Date
+								<Label htmlFor="subCategory" className="text-xs sm:text-sm text-slate-300">
+									Sub Category (optional)
 								</Label>
-								<DatePicker
-									id="date"
-									className="w-full h-9 sm:h-10 bg-[#222] border-none text-xs sm:text-sm text-slate-200"
-									date={inputData.taskDate}
-									setDate={(date) => handleInputChange("taskDate", date)}
+								<Input
+									id="subCategory"
+									className="bg-[#222] border-none h-9 sm:h-10 text-xs sm:text-sm text-slate-200 placeholder:text-slate-500"
+									placeholder="Enter sub category"
+									onChange={(e) => handleInputChange("subCategory", e.target.value)}
+									value={inputData.subCategory}
 								/>
 							</div>
+						</div>
+
+						<div className="space-y-1">
+							<Label htmlFor="date" className="text-xs sm:text-sm text-slate-300">
+								Due Date
+							</Label>
+							<DatePicker
+								id="date"
+								className="w-full h-9 sm:h-10 bg-[#222] border-none text-xs sm:text-sm text-slate-200"
+								date={inputData.taskDate}
+								setDate={(date) => handleInputChange("taskDate", date)}
+							/>
 						</div>
 					</div>
 

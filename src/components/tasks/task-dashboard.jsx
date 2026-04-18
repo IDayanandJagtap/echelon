@@ -9,7 +9,20 @@ import { createTask, deleteTask as deleteTaskRequest, fetchTasksForDate, updateD
 import { fetchRandomQuote } from "@/app/pages/tasks/services/quotes.client";
 
 const statusLabels = ["Idle", "Improving", "Moderate", "Efficient", "Peak"];
-const taskStatuses = ["pending", "inProgress", "done", "toDo", "notDone"];
+const taskStatuses = ["toDo", "pending", "inProgress", "onHold", "done", "notDone"];
+
+function parseLocalDateInput(value) {
+  if (!value) {
+    return null;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  return new Date(year, month - 1, day);
+}
 
 function TaskForm({ initialValue, onClose, onSave }) {
   const [form, setForm] = useState(
@@ -261,7 +274,12 @@ export function TaskDashboard() {
             <input
               type="date"
               value={dateValue}
-              onChange={(event) => setDate(new Date(event.target.value))}
+              onChange={(event) => {
+                const nextDate = parseLocalDateInput(event.target.value);
+                if (nextDate) {
+                  setDate(nextDate);
+                }
+              }}
               className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none"
             />
             <button onClick={() => shiftDate(1)} className="rounded-2xl border border-white/10 bg-white/5 p-3 text-white hover:bg-white/10">

@@ -6,7 +6,7 @@ export function deriveTaskStatus(tasks = []) {
   }
 
   const completedStatuses = new Set(["done"]);
-  const pendingStatuses = new Set(["pending", "notDone", "toDo"]);
+  const pendingStatuses = new Set(["pending", "notDone", "toDo", "todo", "onHold"]);
 
   if (tasks.every((task) => completedStatuses.has(task.status))) {
     return 2;
@@ -32,7 +32,7 @@ export function deriveDayStatusFromTasks(tasks = []) {
     return 3;
   }
 
-  if (tasks.some((task) => task.status === "pending")) {
+  if (tasks.some((task) => task.status === "pending" || task.status === "onHold")) {
     return 2;
   }
 
