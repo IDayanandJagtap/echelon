@@ -7,8 +7,13 @@ export interface TaskRecord {
   title: string;
   description: string;
   status: string;
+  source?: "direct" | "template";
   category: string | null;
   sub_category: string | null;
+  template_rule_id?: string | null;
+  template_rule_title?: string | null;
+  template_star_level?: number | null;
+  template_name?: string | null;
   task_date: string;
   created_by?: string | null;
   created_at?: string;
@@ -17,6 +22,10 @@ export interface TaskRecord {
 
 export interface TaskListResult {
   tasks: TaskRecord[];
+  directTasks?: TaskRecord[];
+  templateTasks?: TaskRecord[];
+  hasActiveTemplate?: boolean;
+  starRating?: number;
   statusOfDay: number;
 }
 
@@ -32,6 +41,7 @@ export interface TaskCreateInput {
   taskDate: string | Date;
   status?: string;
   subCategory?: string;
+  source?: "direct" | "template";
 }
 
 export interface TaskUpdateInput {
@@ -53,6 +63,10 @@ export async function fetchTasksForDate(date: string | Date, userId: string) {
 
   return {
     tasks: response.result?.tasks || [],
+    directTasks: response.result?.directTasks || [],
+    templateTasks: response.result?.templateTasks || [],
+    hasActiveTemplate: response.result?.hasActiveTemplate ?? false,
+    starRating: response.result?.starRating ?? 0,
     statusOfDay: response.result?.statusOfDay ?? 0,
   };
 }
@@ -96,6 +110,15 @@ export async function updateDayStatus(date: string | Date, statusOfDay: string |
     body: JSON.stringify({
       date: normalizeTaskDate(date),
       statusOfDay,
+    }),
+  });
+}
+
+export async function generateTemplateTasks(date: string | Date) {
+  return apiRequest("/templates/generate", {
+    method: "POST",
+    body: JSON.stringify({
+      date: normalizeTaskDate(date),
     }),
   });
 }

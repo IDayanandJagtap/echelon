@@ -2,11 +2,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "../../components/ui/label";
-import { Badge } from "../../components/ui/badge";
-import { useState, useEffect } from "react";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { useEffect, useState } from "react";
 import PropTypes from "prop-types";
-import { Trash2, Edit2, Save, X, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Edit2, Save, Trash2, X } from "lucide-react";
 
 // Constants
 const statuses = [
@@ -28,12 +28,25 @@ const statusColorLabel = {
 	pending: { color: "bg-neutral-600", label: "Pending" },
 };
 
-const Task = ({ id, title, description, category, status, onTaskUpdate, onDelete }) => {
+const Task = ({
+	id,
+	title,
+	description,
+	category,
+	status,
+	source,
+	templateName,
+	ruleTitle,
+	starLevel,
+	onTaskUpdate,
+	onDelete,
+}) => {
 	const [selectedFilters, setSelectedFilters] = useState({});
 	const [isEditing, setIsEditing] = useState(false);
 	const [isExpanded, setIsExpanded] = useState(false);
 	const [editedTitle, setEditedTitle] = useState(title);
 	const [editedDescription, setEditedDescription] = useState(description);
+	const isTemplateTask = source === "template";
 
 	const handleDropdownChange = (dropdown, newValue) => {
 		setSelectedFilters({ ...selectedFilters, [dropdown]: newValue });
@@ -41,6 +54,9 @@ const Task = ({ id, title, description, category, status, onTaskUpdate, onDelete
 	};
 
 	const handleEditClick = () => {
+		if (isTemplateTask) {
+			return;
+		}
 		setIsEditing(true);
 	};
 
@@ -60,6 +76,9 @@ const Task = ({ id, title, description, category, status, onTaskUpdate, onDelete
 	};
 
 	const handleDeleteClick = () => {
+		if (isTemplateTask) {
+			return;
+		}
 		onDelete(id);
 	};
 
@@ -99,9 +118,26 @@ const Task = ({ id, title, description, category, status, onTaskUpdate, onDelete
 							) : (
 								<>
 									<h3 className="text-sm font-medium lg:text-md">{title}</h3>
-									<Badge className="bg-purple-500/20 text-purple-300 text-xs rounded-md px-2 py-0.5 w-fit border-none">
-										{category}
-									</Badge>
+									<div className="flex flex-wrap items-center gap-1">
+										{isTemplateTask ? (
+											<>
+												{templateName ? (
+													<Badge className="bg-cyan-500/20 text-cyan-300 text-xs rounded-md px-2 py-0.5 w-fit border-none">
+														{templateName}
+													</Badge>
+												) : null}
+												{starLevel ? (
+													<Badge className="bg-orange-500/20 text-orange-300 text-xs rounded-md px-2 py-0.5 w-fit border-none">
+														Star {starLevel}
+													</Badge>
+												) : null}
+											</>
+										) : category ? (
+											<Badge className="bg-purple-500/20 text-purple-300 text-xs rounded-md px-2 py-0.5 w-fit border-none">
+												{category}
+											</Badge>
+										) : null}
+									</div>
 								</>
 							)}
 						</div>
@@ -167,43 +203,49 @@ const Task = ({ id, title, description, category, status, onTaskUpdate, onDelete
 						</div>
 
 						<div className="border-t border-border/10 pt-2">
-							<div className="flex justify-end gap-2">
-								<Button
-									variant="ghost"
-									size="icon"
-									className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
-									onClick={handleDeleteClick}
-								>
-									<Trash2 className="h-4 w-4" />
-								</Button>
-								{isEditing ? (
+							<div className="flex justify-end gap-2 items-center">
+								{isTemplateTask ? (
+									<p className="text-xs text-slate-400">Template task: status only</p>
+								) : (
 									<>
 										<Button
 											variant="ghost"
 											size="icon"
-											className="text-green-500 hover:text-green-600 hover:bg-green-500/10"
-											onClick={handleSaveClick}
+											className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+											onClick={handleDeleteClick}
 										>
-											<Save className="h-4 w-4" />
+											<Trash2 className="h-4 w-4" />
 										</Button>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="text-gray-500 hover:text-gray-600 hover:bg-gray-500/10"
-											onClick={handleCancelClick}
-										>
-											<X className="h-4 w-4" />
-										</Button>
+										{isEditing ? (
+											<>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="text-green-500 hover:text-green-600 hover:bg-green-500/10"
+													onClick={handleSaveClick}
+												>
+													<Save className="h-4 w-4" />
+												</Button>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="text-gray-500 hover:text-gray-600 hover:bg-gray-500/10"
+													onClick={handleCancelClick}
+												>
+													<X className="h-4 w-4" />
+												</Button>
+											</>
+										) : (
+											<Button
+												variant="ghost"
+												size="icon"
+												className="text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
+												onClick={handleEditClick}
+											>
+												<Edit2 className="h-4 w-4" />
+											</Button>
+										)}
 									</>
-								) : (
-									<Button
-										variant="ghost"
-										size="icon"
-										className="text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
-										onClick={handleEditClick}
-									>
-										<Edit2 className="h-4 w-4" />
-									</Button>
 								)}
 							</div>
 						</div>
@@ -218,9 +260,13 @@ const Task = ({ id, title, description, category, status, onTaskUpdate, onDelete
 Task.propTypes = {
 	id: PropTypes.string.isRequired,
 	title: PropTypes.string.isRequired,
-	description: PropTypes.string.isRequired,
-	category: PropTypes.string.isRequired,
+	description: PropTypes.string,
+	category: PropTypes.string,
 	status: PropTypes.string.isRequired,
+	source: PropTypes.oneOf(["direct", "template"]),
+	templateName: PropTypes.string,
+	ruleTitle: PropTypes.string,
+	starLevel: PropTypes.number,
 	onTaskUpdate: PropTypes.func.isRequired,
 	onDelete: PropTypes.func.isRequired,
 };

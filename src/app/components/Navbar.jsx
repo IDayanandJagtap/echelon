@@ -3,12 +3,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { BsStars } from "react-icons/bs";
 import { FaChartSimple } from "react-icons/fa6";
 import { FaTasks, FaFire } from "react-icons/fa";
+import { LuLayoutTemplate } from "react-icons/lu";
 import PropTypes from "prop-types";
 import { UserProfilePopover } from "@/components/layout/user-profile-popover";
 import { fetchTodayStreak } from "@/app/pages/tasks/services/day.client";
 const navOptions = [
 	{ label: "Visualize", path: "/visualize", icon: <FaChartSimple size={24} /> },
 	{ label: "Tasks", path: "/tasks", icon: <FaTasks /> },
+	{ label: "Templates", path: "/templates", icon: <LuLayoutTemplate /> },
 	{ label: "AI", path: "/ai", icon: <BsStars /> },
 ];
 
