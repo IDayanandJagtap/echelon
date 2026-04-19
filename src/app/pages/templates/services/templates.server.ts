@@ -4,6 +4,26 @@ const TEMPLATE_SELECT = "id, user_id, name, description, type, is_active, create
 const TEMPLATE_RULE_SELECT =
   "id, template_id, star_level, title, description, sort_order, is_active, created_by, updated_by, created_at, updated_at";
 
+type TemplateProgressRow = {
+  template_rule_id: string;
+  task_id: string | null;
+};
+
+type TemplateTaskRow = {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  status: string;
+  source: string;
+  category: string | null;
+  sub_category: string | null;
+  task_date: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export async function listTemplatesForUser(supabase, userId) {
   const { data, error } = await supabase
     .from("templates")
@@ -497,8 +517,8 @@ export async function generateTemplateTasksForDate(supabase, userId, date) {
     throw existingTasksError;
   }
 
-  const progressByRule = new Map((progressRows || []).map((item) => [item.template_rule_id, item]));
-  const tasksById = new Map((existingTemplateTasks || []).map((task) => [task.id, task]));
+  const progressByRule = new Map<string, TemplateProgressRow>((progressRows as TemplateProgressRow[]).map((item) => [item.template_rule_id, item]));
+  const tasksById = new Map<string, TemplateTaskRow>((existingTemplateTasks as TemplateTaskRow[]).map((task) => [task.id, task]));
 
   const createdTasks = [];
   const updatedTasks = [];
