@@ -2,31 +2,35 @@
 
 import { DatePicker } from "@/components/ui/date-picker";
 import { useEffect, useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, ChevronLeft, Plus, Sparkles } from "lucide-react";
+import { ChevronRight, ChevronLeft, Plus, Sparkles, WandSparkles } from "lucide-react";
 import Task from "@/app/components/Task";
 import NewTask from "@/app/components/NewTask";
 import Loading from "@/app/components/LoadingSpinner";
 import { GLOBAL_CONSTANTS } from "@/app/utils/GLOBAL_CONSTANTS";
 import { useToast } from "@/hooks/use-toast";
-import { createTask, deleteTask, fetchTasksForDate, updateDayStatus, updateTask } from "@/app/pages/tasks/services/tasks.client";
+import {
+	createTask,
+	deleteTask,
+	fetchTasksForDate,
+	generateTemplateTasks,
+	updateTask,
+} from "@/app/pages/tasks/services/tasks.client";
 import { fetchRandomQuote } from "@/app/pages/tasks/services/quotes.client";
 
 const TaskDashboard = ({ userId }) => {
 	const [date, setDate] = useState(new Date());
 	const [taskList, setTaskList] = useState([]);
 	const [statusOfDay, setStatusOfDay] = useState("");
-	const [selectedFilters, setSelectedFilters] = useState({});
 	const [showNewTask, setShowNewTask] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [quote, setQuote] = useState("");
+	const [starRating, setStarRating] = useState(0);
+	const [hasActiveTemplate, setHasActiveTemplate] = useState(false);
+	const router = useRouter();
 	const { toast } = useToast();
 
-	const handleDropdownChange = (dropdown, newValue) => {
-		setSelectedFilters({ ...selectedFilters, [dropdown]: newValue });
-		handleDayUpdate(newValue);
-	};
 	const handleChangeDateByOne = (date, type) => {
 		const nextDate = new Date(date);
 		if (type === "next") {
@@ -49,6 +53,8 @@ const TaskDashboard = ({ userId }) => {
 			const response = await fetchTasksForDate(date, userId);
 			setTaskList(response.tasks || []);
 			setStatusOfDay(response.statusOfDay);
+			setStarRating(response.starRating || 0);
+			setHasActiveTemplate(Boolean(response.hasActiveTemplate));
 		} catch (error) {
 			toast({
 				title: "Oops! Something went wrong while fetching tasks",
@@ -102,6 +108,27 @@ const TaskDashboard = ({ userId }) => {
 		}
 	};
 
+	const handleGenerateTemplateTasks = async () => {
+		try {
+			setIsLoading(true);
+			await generateTemplateTasks(date);
+			toast({ title: "Template tasks generated for this date" });
+		} catch (error) {
+			toast({
+				title: "Could not generate template tasks",
+				description: error.message,
+				variant: "destructive",
+			});
+		} finally {
+			await getTasks(date, userId);
+			setIsLoading(false);
+		}
+	};
+
+	const directTasks = taskList.filter((task) => task?.source !== "template");
+	const templateTasks = taskList.filter((task) => task?.source === "template");
+	const showTemplateAction = templateTasks.length === 0;
+
 	const handleTaskDelete = async (taskId) => {
 		try {
 			if (!taskId) {
@@ -118,22 +145,6 @@ const TaskDashboard = ({ userId }) => {
 			});
 		} finally {
 			await getTasks(date, userId);
-			setIsLoading(false);
-		}
-	};
-
-	const handleDayUpdate = async (status) => {
-		try {
-			setIsLoading(true);
-			await updateDayStatus(date, status);
-			toast({ title: "Updated the status successfully" });
-		} catch (error) {
-			toast({
-				title: "Oops! Something went wrong while updating the status of Day",
-				description: error.message,
-				variant: "destructive",
-			});
-		} finally {
 			setIsLoading(false);
 		}
 	};
@@ -188,59 +199,103 @@ const TaskDashboard = ({ userId }) => {
 							</Button>
 						</div>
 
-						<Button
-							className="bg-sky-600 hover:bg-sky-700 w-[100px] lg:w-fit"
-							onClick={() => setShowNewTask(true)}
-						>
-							<Plus className="h-5 w-5" />
-							<span className="hidden  lg:block">Add New Task</span>
-							<span className="text-xs lg:text-base lg:hidden">New Task</span>
-						</Button>
+						<div className="flex items-center gap-2">
+							{showTemplateAction && hasActiveTemplate ? (
+								<Button
+									variant="outline"
+									className="border-sky-500 text-sky-300 hover:bg-sky-900/30"
+									onClick={handleGenerateTemplateTasks}
+								>
+									<WandSparkles className="h-4 w-4 mr-1" />
+									Generate Template Tasks
+								</Button>
+							) : showTemplateAction ? (
+								<Button
+									variant="outline"
+									className="border-amber-500 text-amber-300 hover:bg-amber-900/30"
+									onClick={() => router.push("/templates")}
+								>
+									Enable a template
+								</Button>
+							) : null}
+							<Button
+								className="bg-sky-600 hover:bg-sky-700 w-[100px] lg:w-fit"
+								onClick={() => setShowNewTask(true)}
+							>
+								<Plus className="h-5 w-5" />
+								<span className="hidden  lg:block">Add New Task</span>
+								<span className="text-xs lg:text-base lg:hidden">New Task</span>
+							</Button>
+						</div>
 					</div>
 
 					{/* Status Section */}
-					<div className="flex ">
-						<Select onValueChange={(value) => handleDropdownChange("statusOfDay", value)}>
-							<SelectTrigger className="w-[150px] bg-[#222] border-slate-700">
-								<SelectValue placeholder={productivityLevels[statusOfDay || 0]} />
-							</SelectTrigger>
-							<SelectContent className="bg-[#222] border-slate-700">
-								{GLOBAL_CONSTANTS.productivityLevels.map((item) => (
-									<SelectItem
-										value={item.value}
-										key={item.value}
-										className="text-white focus:bg-[#333] focus:text-slate-300"
-									>
-										{item.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
+					<div className="flex items-center gap-2 flex-wrap">
+						<span className="rounded-full border border-slate-700 bg-[#222] px-3 py-2 text-sm text-slate-200">
+							Day Status: {productivityLevels[statusOfDay || 0]}
+						</span>
+						<span className="text-sm text-amber-300">Stars: {starRating}/5</span>
 					</div>
 
 					{/* Tasks Section */}
 					<div className="w-full h-full flex flex-col justify-between overflow-hidden">
 						<div className="flex-1 overflow-auto min-h-[60dvh] max-h-[70dvh]">
-							{Array.isArray(taskList) && taskList.length > 0 ? (
-								<div className="space-y-3">
-									{taskList.toReversed().map((task) => (
-										<Task
-											key={task?.id || task?.title}
-											id={task?.id}
-											title={task?.title}
-											description={task?.description}
-											status={task?.status}
-											category={task?.category}
-											onTaskUpdate={handleTaskUpdate}
-											onDelete={handleTaskDelete}
-										/>
-									))}
+							<div className="flex flex-col gap-5 md:flex-row md:items-stretch md:gap-0">
+								<div className="flex-1">
+										<h2 className="text-sm font-semibold text-sky-300 mb-2">Template Tasks</h2>
+										{templateTasks.length > 0 ? (
+											<div className="space-y-3">
+												{templateTasks.toReversed().map((task) => (
+													<Task
+														key={task?.id || task?.title}
+														id={task?.id}
+														title={task?.title}
+														description={task?.description}
+														status={task?.status}
+														category={task?.category || "Template"}
+														source={task?.source}
+														templateName={task?.template_name}
+														ruleTitle={task?.template_rule_title}
+														starLevel={task?.template_star_level}
+														onTaskUpdate={handleTaskUpdate}
+														onDelete={handleTaskDelete}
+													/>
+												))}
+											</div>
+										) : (
+											<div className="rounded-lg border border-dashed border-slate-700 p-3 text-xs text-slate-400">
+												No template tasks for this date.
+											</div>
+										)}
 								</div>
-							) : (
-								<div className="flex justify-center items-center h-[60dvh] text-slate-400">
-									<p>No tasks available!</p>
+
+								<div className="hidden md:block w-px bg-slate-700/80 mx-4 self-stretch" />
+
+								<div className="flex-1">
+										<h2 className="text-sm font-semibold text-emerald-300 mb-2">Direct Tasks</h2>
+										{directTasks.length > 0 ? (
+											<div className="space-y-3">
+												{directTasks.toReversed().map((task) => (
+													<Task
+														key={task?.id || task?.title}
+														id={task?.id}
+														title={task?.title}
+														description={task?.description}
+														status={task?.status}
+														category={task?.category}
+														source={task?.source}
+														onTaskUpdate={handleTaskUpdate}
+														onDelete={handleTaskDelete}
+													/>
+												))}
+											</div>
+										) : (
+											<div className="rounded-lg border border-dashed border-slate-700 p-3 text-xs text-slate-400">
+												No direct tasks yet.
+											</div>
+										)}
+									</div>
 								</div>
-							)}
 						</div>
 
 						{/* Quotes Section */}
@@ -255,7 +310,6 @@ const TaskDashboard = ({ userId }) => {
 					</div>
 				</div>
 			)}
-			{/* Modal Container */}
 			{showNewTask && <NewTask onClose={() => setShowNewTask(false)} onSubmit={createNewTask} />}
 		</div>
 	);

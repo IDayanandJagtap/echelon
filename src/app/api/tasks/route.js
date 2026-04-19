@@ -52,7 +52,8 @@ export async function PUT(request) {
     const result = await updateTaskForUser(supabase, user.id, taskId, updateData);
     return json({ success: true, result });
   } catch (error) {
-    return json({ success: false, message: error.message }, { status: 500 });
+    const status = error.message === "Task not found" ? 404 : 500;
+    return json({ success: false, message: error.message }, { status });
   }
 }
 
@@ -74,6 +75,12 @@ export async function DELETE(request) {
 
     return json({ success: true, message: "Task deleted successfully" });
   } catch (error) {
-    return json({ success: false, message: error.message }, { status: 500 });
+    const status =
+      error.message === "Template tasks cannot be deleted"
+        ? 400
+        : error.message === "Task not found"
+        ? 404
+        : 500;
+    return json({ success: false, message: error.message }, { status });
   }
 }
